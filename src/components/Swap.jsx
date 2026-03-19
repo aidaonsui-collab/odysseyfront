@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import PrimaryButton from "./buttons/PrimaryButton";
 import { useWallet } from "@suiet/wallet-kit";
 import { SuiClient } from "@mysten/sui/client";
-import { useBuy, useSell } from "../hooks/useTrade";
+import { useBuy, useSell, estimateBuyCost, estimateSellReturn } from "../hooks/useTrade";
 import { SUI_RPC, TRADING_FEE_BPS, DEFAULT_SLIPPAGE_BPS } from "../constants/contracts";
 
 const suiClient = new SuiClient({ url: SUI_RPC });
@@ -53,7 +53,14 @@ const Swap = ({ coinDetails }) => {
   const handleSuiChange = (e) => {
     const v = e.target.value;
     setSuiAmount(v);
-    setTokenAmount(v && !isNaN(v) ? (parseFloat(v) / tokenPrice).toFixed(0) : "");
+    // Estimate tokens out based on SUI input
+    if (v && !isNaN(v)) {
+      const suiMist = parseFloat(v) * 1e9;
+      // Rough estimate: tokens ≈ sui / tokenPrice
+      setTokenAmount((parseFloat(v) / tokenPrice).toFixed(0));
+    } else {
+      setTokenAmount("");
+    }
   };
 
   const handleTokenChange = (e) => {
@@ -85,12 +92,18 @@ const Swap = ({ coinDetails }) => {
         const sui = parseFloat(suiAmount);
         if (!sui || sui <= 0) { setStatus("❌ Enter a SUI amount"); setLoading(false); return; }
 
-        // Calculate min tokens out with slippage
-        const estTokens = Math.floor(sui / tokenPrice);
-        const minOut    = Math.floor(estTokens * (10000 - DEFAULT_SLIPPAGE_BPS) / 10000);
+        // buy() takes amount_out (tokens desired); send SUI with 5% buffer for cost+fee
+        const suiWithBuffer = BigInt(Math.floor(sui * 1.05 * 1e9));
+        const estTokens     = Math.floor(sui / tokenPrice);
+        const minOut        = Math.floor(estTokens * (10000 - DEFAULT_SLIPPAGE_BPS) / 10000);
 
         setStatus("Waiting for wallet approval...");
-        const result = await executeBuy({ wallet, tokenType, suiAmount: sui, minTokensOut: minOut });
+        const result = await executeBuy({
+          wallet, tokenType,
+          suiAmountMist:  suiWithBuffer,
+          tokenAmountOut: estTokens,
+          slippageBps:    DEFAULT_SLIPPAGE_BPS,
+        });
 
         if (result?.effects?.status?.status === "success") {
           setStatus(`✅ Bought! Tx: ${result.digest.slice(0, 10)}...`);
