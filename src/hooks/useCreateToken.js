@@ -51,7 +51,12 @@ const suiClient = new SuiClient({ url: SUI_RPC });
 //   sui move build --dump-bytecode-as-base64
 // against the template above (symbol="COIN", placeholder for metadata)
 
-const COIN_MODULE_BASE64 = 'oRzrCwUAAAAKAQAIAggMAxQgBDQKBT4cB1p2CMACIAriBgzoBhAAAAABAAIAAwAEAAUABgAHAAgBAAIAAAAJAgABCwIAAQwDAAICBwEAAAMDAAEEAQEBAAUGAQEBAAYFBgEABwIHAQADCAkKAQADCwQFAQABDAYHAQABDQgJAQABDgoLAQABDwwNAQEAARAAAAQBDGNvaW5fdGVtcGxhdGUEQ09JTgZvcHRpb24GU3RyaW5nBHV0ZjgEY29pbgZvYmplY3QIdHJhbnNmZXIKdHhfY29udGV4dAlUeENvbnRleHQGT3B0aW9uB2FkZHJlc3MMY3JlYXRlX2N1cnJlbmN5DXB1YmxpY19mcmVlemULcHVibGljX3RyYW5zZmVyBnNlbmRlcgRub25lAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgMIAAAAAAAAAAAACQABAAEODAIBCgABAAEFCwARAkEDCwCRA0EDDAM=';
+// Real compiled bytecode from:
+//   sui move build --dump-bytecode-as-base64
+// Compiled with sui 1.68.0 against coin_template.move
+// Module: coin_template::coin_template, OTW: COIN_TEMPLATE
+// Token type after publish: {packageId}::coin_template::COIN_TEMPLATE
+const COIN_MODULE_BASE64 = 'oRzrCwYAAAAKAQAMAgweAyoiBEwIBVRUB6gBwAEI6AJgBsgDFArcAwUM4QMoAAcBDAIGAhACEQISAAACAAECBwEAAAIBDAEAAQIDDAEAAQQEAgAFBQcAAAoAAQABCwEEAQACCAYHAQIDDQkBAQwDDg0BAQwEDwoLAAEDAgUDCAQMAggABwgEAAILAgEIAAsDAQgAAQgFAQsBAQkAAQgABwkAAgoCCgIKAgsBAQgFBwgEAgsDAQkACwIBCQABCwIBCAABCQABBggEAQUBCwMBCAACCQAFDUNPSU5fVEVNUExBVEUMQ29pbk1ldGFkYXRhBk9wdGlvbgtUcmVhc3VyeUNhcAlUeENvbnRleHQDVXJsBGNvaW4NY29pbl90ZW1wbGF0ZQ9jcmVhdGVfY3VycmVuY3kLZHVtbXlfZmllbGQEaW5pdARub25lBm9wdGlvbhRwdWJsaWNfZnJlZXplX29iamVjdA9wdWJsaWNfdHJhbnNmZXIGc2VuZGVyCHRyYW5zZmVyCnR4X2NvbnRleHQDdXJsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACCgIFBENPSU4KAgUEQ29pbgoCAQAAAgEJAQAAAAACEgsAMQkHAAcBBwI4AAoBOAEMAgwDCwI4AgsDCwEuEQU4AwIA';
 
 // ── Helper: replace coin name/symbol in bytecode ─────────────
 // For production: generate bytecode server-side with actual symbol.
@@ -114,7 +119,7 @@ export function useCreateToken() {
         : [tx.moveCall({ target: '0x2::coin::zero', typeArguments: ['0x2::sui::SUI'], arguments: [] })];
 
       // 2d. Call moonbags::create<Token>
-      //     Token type = {publishedPkg}::coin::COIN
+      //     Token type = {publishedPkg}::coin_template::COIN_TEMPLATE
       //     BUT: we don't know publishedPkg until AFTER publish runs.
       //     Solution: use tx.publish result as the type parameter source.
       //
@@ -147,7 +152,7 @@ export function useCreateToken() {
       if (!publishedPkg?.packageId) throw new Error('Could not find published package ID in tx result');
 
       const packageId = publishedPkg.packageId;
-      const tokenType = `${packageId}::coin::COIN`;
+      const tokenType = `${packageId}::coin_template::COIN_TEMPLATE`;
 
       // TreasuryCap was transferred to user by the coin module's init()
       // Find it in objectChanges
